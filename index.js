@@ -98,7 +98,7 @@ server.post('/messages', async (req, res ) => {
             to,
             text,
             type,
-            time,
+            time:time,
        })
        res.sendStatus(201)
        }else{
