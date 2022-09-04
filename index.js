@@ -33,7 +33,7 @@ server.post("/participants", async (req, res) => {
     const validation = userSchema.validate({name}) 
    
     if(validation.error){
-        res.status(409).send({message:"deu erro aqui"})
+        res.status(409).send({message:"Erro de usuarioName"})
     }
     
     try{
@@ -60,6 +60,18 @@ server.post("/participants", async (req, res) => {
         res.status(422)
         
     }   
+})
+
+server.get('/participants', async (req, res) =>{
+
+    try{
+    const participantes = await db.collection('participants').find().toArray()
+    res.status(200).send(participantes)
+    }catch(err){
+        res.send(err)
+    }
+
+    
 })
 
 server.listen(5000, () => console.log('Escutando na porta 5000'))
