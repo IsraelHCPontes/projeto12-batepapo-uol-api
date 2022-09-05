@@ -1,7 +1,7 @@
-import express from 'express';
+import express, { query } from 'express';
 import cors from "cors";
 import joi from "joi";
-import { MongoClient } from "mongodb";
+import { MongoClient, ObjectId  } from "mongodb";
 import dayjs from 'dayjs';
 
 
@@ -40,7 +40,7 @@ server.post("/participants", async (req, res) => {
     const validation = userSchema.validate({name}) 
    
     if(validation.error){
-        res.status(409).send({message:"Erro de usuarioName"})
+        res.status(409).send({message:'Erro de usuarioName'})
     }
     
     try{
@@ -72,8 +72,8 @@ server.post("/participants", async (req, res) => {
 server.get('/participants', async (req, res) =>{
 
     try{
-    const participantes = await db.collection('participants').find().toArray()
-    res.status(200).send(participantes)
+        const participantes = await db.collection('participants').find().toArray()
+        res.status(200).send(participantes)
     }catch(err){
         res.status(500).send(err.message)
     }
@@ -90,7 +90,7 @@ server.post('/messages', async (req, res ) => {
     }
 
     try{
-       const userExiste = await db.collection("participants").findOne({name:user})
+       const userExiste = await db.collection('participants').findOne({name:user})
 
        if(userExiste){
         await db.collection('messages').insertOne({
@@ -108,5 +108,58 @@ server.post('/messages', async (req, res ) => {
         res.sendStatus(500)
     }
 })
+
+
+server.get('/messages', async (req, res) => {
+   const  user = req.headers.user
+   const {limit} = req.query
+   const participantes = await db.collection('participants').find().toArray();
+   
+   try{
+    const menssagens = participantes.filter(participante => participante.to === user || participante.from === user ||  participante.to === "todos" );
+    res.status(200).send(menssagens.splice(-limit))  
+   }catch(err){
+    res.status(500).send('message aqui')
+   }
+}) 
+
+server.post('/status', async (req, res) => {
+    const user = req.headers.user
+    const time = dayjs().format('HH:mm:ss');
+
+    try{
+        const userExiste = await db.collection('participants').findOne({name:user})
+ 
+        if(userExiste){
+            await db.collection("participants").updateOne({name: user}, { $set: {lastStatus: time} });
+            res.sendStatus(200);    
+        }
+            res.sendStatus(404)
+     }catch(err){
+            res.sendStatus(404)
+     }
+})
+
+setInterval( async () => {  
+    
+    const time = dayjs().format('HH:mm:ss');
+    
+    const participantes = await db.collection('participants').find().toArray();
+
+    participantes.forEach(participante => {
+        if(Date.now() - participante.lastStatus > 1000){
+
+             db.collection('participants').deleteOne({_id: ObjectId(participante._id)})
+
+             db.collection('messages').insertOne({
+                 from: participante.name,
+                 to: 'Todos',  
+                 text: 'sai da sala...', 
+                 type: 'status', 
+                 time:time})
+        }
+    })
+}) 
+
 
 server.listen(5000, () => console.log('Escutando na porta 5000'))
