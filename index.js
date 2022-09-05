@@ -113,10 +113,10 @@ server.post('/messages', async (req, res ) => {
 server.get('/messages', async (req, res) => {
    const  user = req.headers.user
    const {limit} = req.query
-   const participantes = await db.collection('participants').find().toArray();
+   const participantes = await db.collection('messages').find().toArray();
    
    try{
-    const menssagens = participantes.filter(participante => participante.to === user || participante.from === user ||  participante.to === "todos" );
+    const menssagens = participantes.filter(messages => messages.to === user || messages.from === user ||  messages.to === "Todos" );
     res.status(200).send(menssagens.splice(-limit))  
    }catch(err){
     res.status(500).send('message aqui')
@@ -146,8 +146,10 @@ setInterval( async () => {
     
     const participantes = await db.collection('participants').find().toArray();
 
+    const segundos = Date.now() - 10 * 1000;
+
     participantes.forEach(participante => {
-        if(Date.now() - participante.lastStatus > 1000){
+        if(participante.lastStatus > segundos){
 
              db.collection('participants').deleteOne({_id: ObjectId(participante._id)})
 
@@ -159,7 +161,7 @@ setInterval( async () => {
                  time:time})
         }
     })
-}) 
+}, 15000) 
 
 
 server.listen(5000, () => console.log('Escutando na porta 5000'))
